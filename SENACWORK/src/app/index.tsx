@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { useState } from 'react';
+
 import {
   Pressable,
   StyleSheet,
@@ -9,14 +10,64 @@ import {
   Platform,
 } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+
+type Usuario = {
+  nome: string;
+  email: string;
+  senha: string;
+};
+
 export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [mensagem, setMensagem] = useState('');
+
+  async function entrar() {
+    setMensagem('');
+
+    const emailLimpo = email.trim().toLowerCase();
+
+    if (!emailLimpo || !senha) {
+      setMensagem('Preencha o e-mail e a senha.');
+      return;
+    }
+
+    try {
+      const dados = await AsyncStorage.getItem('usuarios');
+      const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
+
+      const usuarioEncontrado = usuarios.find(
+        u => u.email === emailLimpo && u.senha === senha
+      );
+
+      if (!usuarioEncontrado) {
+        setMensagem('E-mail ou senha incorretos. Verifique seus dados ou cadastre-se.');
+        return;
+      }
+
+      await AsyncStorage.setItem(
+        'usuarioLogado',
+        JSON.stringify({
+          nome: usuarioEncontrado.nome,
+          email: usuarioEncontrado.email,
+        })
+      );
+
+      router.replace('/home');
+    } catch (erro) {
+      console.error('Erro ao entrar:', erro);
+      setMensagem('Não foi possível verificar seus dados.');
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.conteudo}>
-
         <Text style={styles.titulo}>
           Bem-Vindo ao
           {'\n'}Achados e Perdidos
@@ -24,38 +75,41 @@ export default function LoginScreen() {
         </Text>
 
         <View style={styles.formulario}>
-
           <Text style={styles.subtitulo}>Login</Text>
 
           <Text style={styles.label}>Email</Text>
-
           <TextInput
             style={styles.input}
             placeholder="Digite seu email"
+            value={email}
+            onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Text style={styles.label}>Senha</Text>
-
           <TextInput
             style={styles.input}
             placeholder="Digite sua senha"
+            value={senha}
+            onChangeText={setSenha}
             secureTextEntry
           />
 
-          <Pressable style={styles.botao}>
+          {mensagem !== '' && (
+            <Text style={styles.erro}>{mensagem}</Text>
+          )}
+
+          <Pressable style={styles.botao} onPress={entrar}>
             <Text style={styles.textoBotao}>Entrar</Text>
           </Pressable>
 
-          <Text style={styles.textoCadastro}>
-            Ainda não tem uma conta?
-          </Text>
+          <Text style={styles.textoCadastro}>Ainda não tem uma conta?</Text>
 
           <Pressable onPress={() => router.push('/cadastro')}>
             <Text style={styles.link}>Cadastre-se</Text>
           </Pressable>
-
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -117,6 +171,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
+  erro: {
+    color: '#D32F2F',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
   botao: {
     height: 40,
     backgroundColor: '#00549A',
@@ -130,7 +191,7 @@ const styles = StyleSheet.create({
   textoBotao: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
 
   textoCadastro: {

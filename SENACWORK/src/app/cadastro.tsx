@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { useState } from 'react';
+
 import {
     Pressable,
     StyleSheet,
@@ -10,7 +11,75 @@ import {
     ScrollView,
 } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+
+type Usuario = {
+    nome: string;
+    email: string;
+    senha: string;
+};
+
 export default function CadastroScreen() {
+    const [nome, setNome] = useState('');
+    const [email, setEmail] = useState('');
+    const [senha, setSenha] = useState('');
+    const [confirmarSenha, setConfirmarSenha] = useState('');
+    const [mensagem, setMensagem] = useState('');
+
+    async function cadastrar() {
+        setMensagem('');
+
+        const emailLimpo = email.trim().toLowerCase();
+
+        if (!nome.trim() || !emailLimpo || !senha || !confirmarSenha) {
+            setMensagem('Preencha todos os campos.');
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+            setMensagem('Digite um e-mail válido.');
+            return;
+        }
+
+        if (senha.length < 6) {
+            setMensagem('A senha deve ter pelo menos 6 caracteres.');
+            return;
+        }
+
+        if (senha !== confirmarSenha) {
+            setMensagem('As senhas não coincidem.');
+            return;
+        }
+
+        try {
+            const dados = await AsyncStorage.getItem('usuarios');
+            const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
+
+            const emailExiste = usuarios.some(
+                usuario => usuario.email === emailLimpo
+            );
+
+            if (emailExiste) {
+                setMensagem('E-mail já cadastrado. Utilize outro e-mail ou faça login.');
+                return;
+            }
+
+            usuarios.push({
+                nome: nome.trim(),
+                email: emailLimpo,
+                senha: senha,
+            });
+
+            await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+
+            router.replace('/');
+        } catch (erro) {
+            console.error('Erro ao cadastrar:', erro);
+            setMensagem('Não foi possível salvar o cadastro.');
+        }
+    }
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -33,6 +102,8 @@ export default function CadastroScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="Digite seu nome"
+                        value={nome}
+                        onChangeText={setNome}
                         autoCapitalize="words"
                     />
 
@@ -40,14 +111,19 @@ export default function CadastroScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="Digite seu email"
+                        value={email}
+                        onChangeText={setEmail}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        autoCorrect={false}
                     />
 
                     <Text style={styles.label}>Senha</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="Crie uma senha"
+                        value={senha}
+                        onChangeText={setSenha}
                         secureTextEntry
                     />
 
@@ -55,16 +131,20 @@ export default function CadastroScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="Digite a senha novamente"
+                        value={confirmarSenha}
+                        onChangeText={setConfirmarSenha}
                         secureTextEntry
                     />
 
-                    <Pressable style={styles.botao}>
+                    {mensagem !== '' && (
+                        <Text style={styles.erro}>{mensagem}</Text>
+                    )}
+
+                    <Pressable style={styles.botao} onPress={cadastrar}>
                         <Text style={styles.textoBotao}>Cadastrar</Text>
                     </Pressable>
 
-                    <Text style={styles.textoLogin}>
-                        Já possui uma conta?
-                    </Text>
+                    <Text style={styles.textoLogin}>Já possui uma conta?</Text>
 
                     <Pressable onPress={() => router.replace('/')}>
                         <Text style={styles.link}>Fazer login</Text>
@@ -129,6 +209,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         marginBottom: 16,
         fontSize: 13,
+    },
+
+    erro: {
+        color: '#D32F2F',
+        fontSize: 12,
+        textAlign: 'center',
+        marginBottom: 12,
     },
 
     botao: {

@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Header from '../components/Header';
 
 export default function LoginScreen() {
   return (
@@ -15,6 +16,8 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Header showMenu={false} showProfile={false} />
+
       <View style={styles.conteudo}>
 
         <Text style={styles.titulo}>

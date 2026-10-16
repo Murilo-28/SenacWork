@@ -1,84 +1,281 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-export default function HomeScreen() {
+import { useTema } from '../contexts/ThemeContext';
+
+
+export default function Config() {
+
+  const {
+    tema,
+    modoEscuro,
+    mudarTema,
+  } = useTema();
+
+
   return (
-    <View style={styles.container}>
 
-      <Text style={styles.titulo}>
-        Bem-vindo ao Achados e Perdidos do SENAC
+    <View
+      style={[
+        styles.container,
+
+        {
+          backgroundColor:
+            modoEscuro
+              ? '#061A36'
+              : '#FFFFFF',
+        },
+      ]}
+    >
+
+
+      {/* TÍTULO */}
+
+      <Text
+        style={[
+          styles.titulo,
+
+          {
+            color:
+              modoEscuro
+                ? '#FFFFFF'
+                : '#000000',
+          },
+        ]}
+      >
+        Configurações
       </Text>
 
-      <Text style={styles.login}>
-        Login
+
+
+      {/* MODO */}
+
+      <Text
+        style={[
+          styles.modo,
+
+          {
+            color:
+              modoEscuro
+                ? '#FFFFFF'
+                : '#000000',
+          },
+        ]}
+      >
+        Modo:
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        keyboardType="email-address"
-      />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nome"
-      />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        secureTextEntry
-      />
+      {/* ================= CLARO ================= */}
 
-      <Pressable style={styles.botao}>
-        <Text style={styles.textoBotao}>
-          Entrar
+      <Pressable
+        style={styles.opcao}
+        onPress={() => mudarTema('claro')}
+      >
+
+        <Text
+          style={[
+            styles.bolinha,
+
+            {
+              color:
+                modoEscuro
+                  ? '#FFFFFF'
+                  : '#000000',
+            },
+          ]}
+        >
+
+          {tema === 'claro'
+            ? '◉'
+            : '○'}
+
         </Text>
+
+
+        <View>
+
+          <Text
+            style={[
+              styles.nomeOpcao,
+
+              {
+                color:
+                  modoEscuro
+                    ? '#FFFFFF'
+                    : '#333333',
+              },
+            ]}
+          >
+            Claro
+          </Text>
+
+
+          <Text
+            style={[
+              styles.descricao,
+
+              {
+                color:
+                  modoEscuro
+                    ? '#B8C7D9'
+                    : '#777777',
+              },
+            ]}
+          >
+            Um modo claro
+          </Text>
+
+        </View>
+
+      </Pressable>
+
+
+
+      {/* ================= ESCURO ================= */}
+
+      <Pressable
+        style={styles.opcao}
+        onPress={() => mudarTema('escuro')}
+      >
+
+        <Text
+          style={[
+            styles.bolinha,
+
+            {
+              color:
+                modoEscuro
+                  ? '#FFFFFF'
+                  : '#000000',
+            },
+          ]}
+        >
+
+          {tema === 'escuro'
+            ? '◉'
+            : '○'}
+
+        </Text>
+
+
+        <View>
+
+          <Text
+            style={[
+              styles.nomeOpcao,
+
+              {
+                color:
+                  modoEscuro
+                    ? '#FFFFFF'
+                    : '#333333',
+              },
+            ]}
+          >
+            Escuro
+          </Text>
+
+
+          <Text
+            style={[
+              styles.descricao,
+
+              {
+                color:
+                  modoEscuro
+                    ? '#B8C7D9'
+                    : '#777777',
+              },
+            ]}
+          >
+            Um modo escuro
+          </Text>
+
+        </View>
+
       </Pressable>
 
     </View>
+
   );
 }
 
+
+
 const styles = StyleSheet.create({
+
   container: {
-    width: 'auto',
+
     flex: 1,
+
     padding: 20,
-    justifyContent: 'center',
+
   },
+
 
   titulo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
+
+    fontSize: 30,
+
+    fontWeight: '400',
+
     marginBottom: 30,
+
   },
 
-  login: {
+
+  modo: {
+
     fontSize: 20,
-    fontWeight: 'bold',
+
     marginBottom: 15,
+
   },
 
-  input: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+
+  opcao: {
+
+    flexDirection: 'row',
+
+    alignItems: 'flex-start',
+
+    marginLeft: 15,
+
+    marginBottom: 20,
+
   },
 
-  botao: {
-    backgroundColor: '#6D28D9',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
+
+  bolinha: {
+
+    fontSize: 22,
+
+    marginRight: 10,
+
+    marginTop: -2,
+
   },
 
-  textoBotao: {
-    color: 'white',
+
+  nomeOpcao: {
+
     fontSize: 16,
-    fontWeight: 'bold',
+
   },
+
+
+  descricao: {
+
+    fontSize: 14,
+
+    marginTop: 3,
+
+  },
+
 });

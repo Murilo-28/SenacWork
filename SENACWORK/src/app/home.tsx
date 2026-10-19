@@ -1,84 +1,155 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
 
-export default function HomeScreen() {
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+import { useTema } from '../contexts/ThemeContext';
+
+
+export default function Home() {
+
+  const { modoEscuro } = useTema();
+
+  function adicionarProduto() {
+    router.push('/addProduto');
+  }
+
+
   return (
-    <View style={styles.container}>
 
-      <Text style={styles.titulo}>
-        Bem-vindo ao Achados e Perdidos do SENAC
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: modoEscuro
+            ? '#061A36'
+            : '#FFFFFF',
+        },
+      ]}
+    >
+
+      {/* TÍTULO */}
+
+      <Text
+        style={[
+          styles.titulo,
+          {
+            color: modoEscuro
+              ? '#FFFFFF'
+              : '#000000',
+          },
+        ]}
+      >
+        Home
       </Text>
 
-      <Text style={styles.login}>
-        Login
+
+      {/* SUBTÍTULO */}
+
+      <Text
+        style={[
+          styles.texto,
+          {
+            color: modoEscuro
+              ? '#B8C7D9'
+              : '#555555',
+          },
+        ]}
+      >
+        Achados e Perdidos SENAC
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        keyboardType="email-address"
-      />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nome"
-      />
+      {/* BOTÃO ADICIONAR PRODUTO */}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        secureTextEntry
-      />
-
-      <Pressable style={styles.botao}>
-        <Text style={styles.textoBotao}>
-          Entrar
+      <Pressable
+        style={({ pressed }) => [
+          styles.botaoAdicionar,
+          pressed && styles.botaoPressionado,
+        ]}
+        onPress={adicionarProduto}
+      >
+        <Text style={styles.mais}>
+          +
         </Text>
       </Pressable>
 
     </View>
+
   );
 }
 
+
 const styles = StyleSheet.create({
+
   container: {
-    width: 'auto',
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
   },
+
 
   titulo: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 10,
   },
 
-  login: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
 
-  input: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-
-  botao: {
-    backgroundColor: '#6D28D9',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-
-  textoBotao: {
-    color: 'white',
+  texto: {
     fontSize: 16,
-    fontWeight: 'bold',
   },
+
+
+  /* BOTÃO + */
+
+  botaoAdicionar: {
+    position: 'absolute',
+
+    right: 25,
+    bottom: 25,
+
+    width: 65,
+    height: 65,
+
+    borderRadius: 33,
+
+    backgroundColor: '#F7941D',
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    elevation: 8,
+
+    shadowColor: '#000000',
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    shadowOpacity: 0.3,
+
+    shadowRadius: 5,
+  },
+
+
+  botaoPressionado: {
+    opacity: 0.7,
+  },
+
+
+  mais: {
+    color: '#FFFFFF',
+
+    fontSize: 42,
+
+    fontWeight: '300',
+
+    lineHeight: 45,
+  },
+
 });

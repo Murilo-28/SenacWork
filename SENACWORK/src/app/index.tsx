@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Header from '../components/Header';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -67,6 +68,8 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Header showMenu={false} showProfile={false} />
+
       <View style={styles.conteudo}>
         <Text style={styles.titulo}>
           Bem-Vindo ao

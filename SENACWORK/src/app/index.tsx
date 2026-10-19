@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 
 import {
@@ -8,7 +9,9 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
+
 import Header from '../components/Header';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,8 +27,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
   async function entrar() {
+    if (carregando) return;
+
     setMensagem('');
 
     const emailLimpo = email.trim().toLowerCase();
@@ -36,15 +42,21 @@ export default function LoginScreen() {
     }
 
     try {
+      setCarregando(true);
+
       const dados = await AsyncStorage.getItem('usuarios');
       const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
 
       const usuarioEncontrado = usuarios.find(
-        u => u.email === emailLimpo && u.senha === senha
+        (usuario) =>
+          usuario.email.trim().toLowerCase() === emailLimpo &&
+          usuario.senha === senha
       );
 
       if (!usuarioEncontrado) {
-        setMensagem('E-mail ou senha incorretos. Verifique seus dados ou cadastre-se.');
+        setMensagem(
+          'E-mail ou senha incorretos. Verifique seus dados ou cadastre-se.'
+        );
         return;
       }
 
@@ -60,6 +72,8 @@ export default function LoginScreen() {
     } catch (erro) {
       console.error('Erro ao entrar:', erro);
       setMensagem('Não foi possível verificar seus dados.');
+    } finally {
+      setCarregando(false);
     }
   }
 
@@ -70,51 +84,78 @@ export default function LoginScreen() {
     >
       <Header showMenu={false} showProfile={false} />
 
-      <View style={styles.conteudo}>
-        <Text style={styles.titulo}>
-          Bem-Vindo ao
-          {'\n'}Achados e Perdidos
-          {'\n'}do Senac
-        </Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollConteudo}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.conteudo}>
+          <Text style={styles.titulo}>
+            Bem-vindo ao{'\n'}
+            Achados e Perdidos{'\n'}
+            do SENAC
+          </Text>
 
-        <View style={styles.formulario}>
-          <Text style={styles.subtitulo}>Login</Text>
+          <View style={styles.formulario}>
+            <Text style={styles.subtitulo}>Login</Text>
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite seu email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+            <Text style={styles.label}>E-mail</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Digite seu e-mail"
+              placeholderTextColor="#888888"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!carregando}
+              returnKeyType="next"
+            />
 
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite sua senha"
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-          />
+            <Text style={styles.label}>Senha</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Digite sua senha"
+              placeholderTextColor="#888888"
+              value={senha}
+              onChangeText={setSenha}
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!carregando}
+              returnKeyType="done"
+              onSubmitEditing={entrar}
+            />
 
-          {mensagem !== '' && (
-            <Text style={styles.erro}>{mensagem}</Text>
-          )}
+            {mensagem !== '' && (
+              <Text style={styles.erro}>{mensagem}</Text>
+            )}
 
-          <Pressable style={styles.botao} onPress={entrar}>
-            <Text style={styles.textoBotao}>Entrar</Text>
-          </Pressable>
+            <Pressable
+              style={[
+                styles.botao,
+                carregando && styles.botaoDesativado,
+              ]}
+              onPress={entrar}
+              disabled={carregando}
+            >
+              <Text style={styles.textoBotao}>
+                {carregando ? 'Entrando...' : 'Entrar'}
+              </Text>
+            </Pressable>
 
-          <Text style={styles.textoCadastro}>Ainda não tem uma conta?</Text>
+            <Text style={styles.textoCadastro}>
+              Ainda não tem uma conta?
+            </Text>
 
-          <Pressable onPress={() => router.push('/cadastro')}>
-            <Text style={styles.link}>Cadastre-se</Text>
-          </Pressable>
+            <Pressable
+              onPress={() => router.push('/cadastro')}
+              disabled={carregando}
+            >
+              <Text style={styles.link}>Cadastre-se</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -125,11 +166,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
+  scrollConteudo: {
+    flexGrow: 1,
+  },
+
   conteudo: {
     flex: 1,
     justifyContent: 'center',
     width: '100%',
     paddingHorizontal: '9%',
+    paddingVertical: 24,
   },
 
   titulo: {
@@ -165,13 +211,15 @@ const styles = StyleSheet.create({
 
   input: {
     width: '100%',
-    height: 40,
+    height: 44,
     borderWidth: 1,
     borderColor: '#DDDDDD',
     borderRadius: 6,
     paddingHorizontal: 10,
     marginBottom: 16,
     fontSize: 13,
+    color: '#111111',
+    backgroundColor: '#FFFFFF',
   },
 
   erro: {
@@ -182,13 +230,17 @@ const styles = StyleSheet.create({
   },
 
   botao: {
-    height: 40,
+    height: 44,
     backgroundColor: '#00549A',
     borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
     marginBottom: 22,
+  },
+
+  botaoDesativado: {
+    opacity: 0.6,
   },
 
   textoBotao: {

@@ -1,19 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router, usePathname } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  ThemeProvider,
-  useTema,
-} from '../contexts/ThemeContext';
+import { Colors, type Paleta } from '../constants/theme';
+import { ThemeProvider, useTema } from '../contexts/ThemeContext';
 
+const ALTURA_BARRA = 56;
+
+type Rota = '/home' | '/solicitacao' | '/config' | '/perfil';
+
+const itens = [
+  { nome: 'Home', icone: 'home-outline', rota: '/home' },
+  { nome: 'Solicitar', icone: 'document-text-outline', rota: '/solicitacao' },
+  { nome: 'Config', icone: 'settings-outline', rota: '/config' },
+] as const;
 
 export default function RootLayout() {
   return (
@@ -23,510 +27,235 @@ export default function RootLayout() {
   );
 }
 
-
 function Layout() {
-
   const pathname = usePathname();
-
-  const {
-    modoEscuro,
-    resetarTema,
-  } = useTema();
+  const insets = useSafeAreaInsets();
+  const { modoEscuro, resetarTema } = useTema();
 
   const [menuAberto, setMenuAberto] = useState(false);
 
+  // Telas antes de fazer login: sem barra, quem desenha o topo é o <Header />
+  const telaSemLogin = pathname === '/' || pathname === '/cadastro';
 
-  // Telas antes de fazer login
-  const telaSemLogin =
-    pathname === '/' ||
-    pathname === '/cadastro';
+  const modoEscuroAtivo = modoEscuro && !telaSemLogin;
+  const cores = modoEscuroAtivo ? Colors.dark : Colors.light;
+  const styles = criarEstilos(cores);
 
+  const alturaHeader = insets.top + ALTURA_BARRA;
 
-  // Abre e fecha o menu
-  function abrirFecharMenu() {
-    setMenuAberto(!menuAberto);
-  }
-
-
-  // HOME
-  function irHome() {
+  function ir(rota: Rota) {
     setMenuAberto(false);
-
-    router.push('/home');
+    router.push(rota);
   }
 
-
-  // CONFIGURAÇÕES
-  function irConfig() {
-    setMenuAberto(false);
-
-    router.push('/config');
-  }
-
-
-  // PERFIL
-  function irPerfil() {
-    setMenuAberto(false);
-
-    router.push('/perfil');
-  }
-
-
-  // SAIR
   function sair() {
-
     setMenuAberto(false);
-
-    // Volta o tema para claro
     resetarTema();
-
-    // Volta para Login
     router.replace('/');
   }
 
-
   return (
+    <View style={styles.container}>
+      <StatusBar
+        style={telaSemLogin || modoEscuroAtivo ? 'light' : 'dark'}
+      />
 
-    <View
-      style={[
-        styles.container,
-
-        {
-          backgroundColor:
-            modoEscuro && !telaSemLogin
-              ? '#061A36'
-              : '#FFFFFF',
-        },
-      ]}
-    >
-
-
-      {/* ================= HEADER ================= */}
-
-      <View
-        style={[
-          styles.header,
-
-          {
-            backgroundColor:
-              modoEscuro && !telaSemLogin
-                ? '#0B3456'
-                : '#FF9818',
-          },
-        ]}
-      >
-
-
-        {telaSemLogin ? (
-
-          // HEADER LOGIN
-
-          <Text style={styles.logoLogin}>
-
-            A&P{' '}
-
-            <Text style={styles.senac}>
-              SENAC
-            </Text>
-
-          </Text>
-
-        ) : (
-
-          <>
-
-            {/* BOTÃO MENU */}
-
-            <Pressable
-              style={styles.botaoMenu}
-              onPress={abrirFecharMenu}
-            >
-
-              <Ionicons
-                name={
-                  menuAberto
-                    ? 'close'
-                    : 'menu'
-                }
-                size={40}
-                color="#FFFFFF"
-              />
-
-            </Pressable>
-
-
-            {/* LOGO */}
-
-            <Text style={styles.logo}>
-
-              A&P{' '}
-
-              <Text style={styles.senac}>
-                SENAC
-              </Text>
-
-            </Text>
-
-
-            {/* PERFIL */}
-
-            <Pressable
-              style={styles.perfil}
-              onPress={irPerfil}
-            >
-
-              <Ionicons
-                name="person-outline"
-                size={32}
-                color="#222222"
-              />
-
-            </Pressable>
-
-          </>
-
-        )}
-
-      </View>
-
-
-
-      {/* ================= MENU ================= */}
-
-      {!telaSemLogin && menuAberto && (
-
+      {/* HEADER (só logado) */}
+      {!telaSemLogin && (
         <View
           style={[
-            styles.menu,
-
-            {
-              backgroundColor:
-                modoEscuro
-                  ? '#0B3456'
-                  : '#E58A12',
-            },
+            styles.header,
+            { height: alturaHeader, paddingTop: insets.top },
           ]}
         >
-
-
-          {/* HOME */}
-
           <Pressable
-            style={[
-              styles.opcaoMenu,
-
-              modoEscuro &&
-                styles.opcaoMenuEscuro,
-            ]}
-            onPress={irHome}
+            style={styles.botaoIcone}
+            onPress={() => setMenuAberto(!menuAberto)}
+            hitSlop={8}
           >
-
             <Ionicons
-              name="home-outline"
-              size={40}
-              color={
-                modoEscuro
-                  ? '#FFFFFF'
-                  : '#222222'
-              }
+              name={menuAberto ? 'close' : 'menu'}
+              size={26}
+              color={cores.texto}
             />
-
-            <Text
-              style={[
-                styles.textoMenu,
-
-                modoEscuro &&
-                  styles.textoMenuEscuro,
-              ]}
-            >
-              Home
-            </Text>
-
           </Pressable>
 
-
-
-          {/* CONFIG */}
-
-          <Pressable
-            style={[
-              styles.opcaoMenu,
-
-              modoEscuro &&
-                styles.opcaoMenuEscuro,
-            ]}
-            onPress={irConfig}
-          >
-
-            <Ionicons
-              name="settings-outline"
-              size={40}
-              color={
-                modoEscuro
-                  ? '#FFFFFF'
-                  : '#222222'
-              }
-            />
-
-            <Text
-              style={[
-                styles.textoMenu,
-
-                modoEscuro &&
-                  styles.textoMenuEscuro,
-              ]}
-            >
-              Config
-            </Text>
-
-          </Pressable>
-
-
-
-          {/* SAIR */}
+          <Text style={styles.logo}>
+            A&P <Text style={styles.senac}>SENAC</Text>
+          </Text>
 
           <Pressable
-            style={[
-              styles.opcaoMenu,
-
-              modoEscuro &&
-                styles.opcaoMenuEscuro,
-            ]}
-            onPress={sair}
+            style={[styles.botaoIcone, styles.perfil]}
+            onPress={() => ir('/perfil')}
+            hitSlop={8}
           >
-
-            <Ionicons
-              name="log-out-outline"
-              size={40}
-              color={
-                modoEscuro
-                  ? '#FFFFFF'
-                  : '#222222'
-              }
-            />
-
-            <Text
-              style={[
-                styles.textoMenu,
-
-                modoEscuro &&
-                  styles.textoMenuEscuro,
-              ]}
-            >
-              Sair
-            </Text>
-
+            <Ionicons name="person-outline" size={20} color={cores.primario} />
           </Pressable>
-
         </View>
-
       )}
 
+      {/* MENU */}
+      {!telaSemLogin && menuAberto && (
+        <>
+          <Pressable
+            style={[styles.fundoMenu, { top: alturaHeader }]}
+            onPress={() => setMenuAberto(false)}
+          />
 
+          <View style={[styles.menu, { top: alturaHeader + 8 }]}>
+            {itens.map((item) => {
+              const ativo = pathname === item.rota;
 
-      {/* ================= PÁGINAS ================= */}
+              return (
+                <Pressable
+                  key={item.rota}
+                  style={[styles.opcaoMenu, ativo && styles.opcaoAtiva]}
+                  onPress={() => ir(item.rota)}
+                >
+                  <Ionicons
+                    name={item.icone}
+                    size={20}
+                    color={ativo ? cores.primario : cores.secundario}
+                  />
+                  <Text
+                    style={[styles.textoMenu, ativo && styles.textoAtivo]}
+                  >
+                    {item.nome}
+                  </Text>
+                </Pressable>
+              );
+            })}
 
+            <View style={styles.divisor} />
+
+            <Pressable style={styles.opcaoMenu} onPress={sair}>
+              <Ionicons
+                name="log-out-outline"
+                size={20}
+                color={cores.secundario}
+              />
+              <Text style={styles.textoMenu}>Sair</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
+
+      {/* PÁGINAS */}
       <View style={styles.conteudo}>
-
         <Stack
           screenOptions={{
             headerShown: false,
-
-            contentStyle: {
-              backgroundColor:
-                modoEscuro &&
-                !telaSemLogin
-                  ? '#061A36'
-                  : '#FFFFFF',
-            },
+            contentStyle: { backgroundColor: cores.fundo },
           }}
         />
-
       </View>
-
     </View>
-
   );
 }
 
-
-
-const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-  },
-
-
-  /* HEADER */
-
-  header: {
-
-    height: 95,
-
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    paddingHorizontal: 18,
-
-    paddingTop: 15,
-
-    zIndex: 10,
-
-  },
-
-
-  /* LOGIN */
-
-  logoLogin: {
-
-    fontSize: 30,
-
-    color: '#FFFFFF',
-
-    textShadowColor: '#000000',
-
-    textShadowOffset: {
-      width: 1,
-      height: 1,
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.fundo,
     },
 
-    textShadowRadius: 1,
-
-  },
-
-
-  /* MENU */
-
-  botaoMenu: {
-
-    marginRight: 20,
-
-  },
-
-
-  /* LOGO */
-
-  logo: {
-
-    fontSize: 27,
-
-    color: '#FFFFFF',
-
-    textDecorationLine: 'underline',
-
-    textShadowColor: '#000000',
-
-    textShadowOffset: {
-      width: 1,
-      height: 1,
+    /* HEADER */
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      backgroundColor: c.superficie,
+      borderBottomWidth: 1,
+      borderBottomColor: c.borda,
+      zIndex: 10,
     },
 
-    textShadowRadius: 1,
+    botaoIcone: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  },
+    logo: {
+      flex: 1,
+      marginLeft: 8,
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+      color: c.texto,
+    },
 
+    senac: {
+      color: c.primario,
+    },
 
-  senac: {
+    perfil: {
+      borderRadius: 20,
+      backgroundColor: c.primarioSuave,
+    },
 
-    color: '#005594',
+    /* MENU */
+    fundoMenu: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(15, 27, 45, 0.25)',
+      zIndex: 50,
+    },
 
-    fontWeight: 'bold',
+    menu: {
+      position: 'absolute',
+      left: 12,
+      width: 220,
+      backgroundColor: c.superficie,
+      borderRadius: 16,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: c.borda,
+      shadowColor: '#0F1B2D',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 8,
+      zIndex: 100,
+    },
 
-  },
+    opcaoMenu: {
+      height: 46,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+    },
 
+    opcaoAtiva: {
+      backgroundColor: c.primarioSuave,
+    },
 
-  /* PERFIL */
+    textoMenu: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: c.texto,
+    },
 
-  perfil: {
+    textoAtivo: {
+      color: c.primario,
+      fontWeight: '600',
+    },
 
-    marginLeft: 'auto',
+    divisor: {
+      height: 1,
+      backgroundColor: c.borda,
+      marginVertical: 6,
+      marginHorizontal: 8,
+    },
 
-    width: 58,
-
-    height: 58,
-
-    borderRadius: 29,
-
-    backgroundColor: '#E7E7E7',
-
-    alignItems: 'center',
-
-    justifyContent: 'center',
-
-  },
-
-
-  /* MENU ABERTO */
-
-  menu: {
-
-    position: 'absolute',
-
-    top: 95,
-
-    left: 0,
-
-    width: '100%',
-
-    paddingHorizontal: 28,
-
-    paddingVertical: 25,
-
-    zIndex: 100,
-
-  },
-
-
-  opcaoMenu: {
-
-    height: 90,
-
-    backgroundColor: '#E5E5E5',
-
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    paddingHorizontal: 20,
-
-    marginBottom: 10,
-
-  },
-
-
-  opcaoMenuEscuro: {
-
-    backgroundColor: '#061A36',
-
-  },
-
-
-  textoMenu: {
-
-    fontSize: 35,
-
-    color: '#111111',
-
-    marginLeft: 20,
-
-  },
-
-
-  textoMenuEscuro: {
-
-    color: '#FFFFFF',
-
-  },
-
-
-  /* CONTEÚDO */
-
-  conteudo: {
-
-    flex: 1,
-
-  },
-
-});
+    /* CONTEÚDO */
+    conteudo: {
+      flex: 1,
+    },
+  });

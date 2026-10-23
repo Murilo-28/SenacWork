@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 import {
@@ -23,11 +22,26 @@ type Usuario = {
   senha: string;
 };
 
+const cores = {
+  fundo: '#F4F7FB',
+  cartao: '#FFFFFF',
+  texto: '#0F1B2D',
+  secundario: '#6B7A90',
+  borda: '#E3E9F1',
+  input: '#F4F7FB',
+  primario: '#00549A',
+  primarioSuave: '#E6F0FA',
+  acento: '#F7941D',
+  erro: '#D32F2F',
+  erroFundo: '#FDECEC',
+};
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [focado, setFocado] = useState<'email' | 'senha' | null>(null);
 
   async function entrar() {
     if (carregando) return;
@@ -87,24 +101,29 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollConteudo}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.conteudo}>
-          <Text style={styles.titulo}>
-            Bem-vindo ao{'\n'}
-            Achados e Perdidos{'\n'}
-            do SENAC
-          </Text>
+          <View style={styles.cabecalho}>
+            <View style={styles.selo}>
+              <Text style={styles.seloTexto}>SENAC</Text>
+            </View>
+            <Text style={styles.titulo}>Achados e Perdidos</Text>
+            <Text style={styles.descricao}>
+              Encontre o que você perdeu ou devolva o que achou.
+            </Text>
+          </View>
 
-          <View style={styles.formulario}>
-            <Text style={styles.subtitulo}>Login</Text>
-
+          <View style={styles.cartao}>
             <Text style={styles.label}>E-mail</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Digite seu e-mail"
-              placeholderTextColor="#888888"
+              style={[styles.input, focado === 'email' && styles.inputFocado]}
+              placeholder="seu@email.com"
+              placeholderTextColor="#A3AFC0"
               value={email}
               onChangeText={setEmail}
+              onFocus={() => setFocado('email')}
+              onBlur={() => setFocado(null)}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -114,11 +133,13 @@ export default function LoginScreen() {
 
             <Text style={styles.label}>Senha</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Digite sua senha"
-              placeholderTextColor="#888888"
+              style={[styles.input, focado === 'senha' && styles.inputFocado]}
+              placeholder="••••••••"
+              placeholderTextColor="#A3AFC0"
               value={senha}
               onChangeText={setSenha}
+              onFocus={() => setFocado('senha')}
+              onBlur={() => setFocado(null)}
               secureTextEntry
               autoCapitalize="none"
               editable={!carregando}
@@ -127,12 +148,15 @@ export default function LoginScreen() {
             />
 
             {mensagem !== '' && (
-              <Text style={styles.erro}>{mensagem}</Text>
+              <View style={styles.caixaErro}>
+                <Text style={styles.erro}>{mensagem}</Text>
+              </View>
             )}
 
             <Pressable
-              style={[
+              style={({ pressed }) => [
                 styles.botao,
+                pressed && styles.botaoPressionado,
                 carregando && styles.botaoDesativado,
               ]}
               onPress={entrar}
@@ -142,14 +166,14 @@ export default function LoginScreen() {
                 {carregando ? 'Entrando...' : 'Entrar'}
               </Text>
             </Pressable>
+          </View>
 
-            <Text style={styles.textoCadastro}>
-              Ainda não tem uma conta?
-            </Text>
-
+          <View style={styles.rodape}>
+            <Text style={styles.textoCadastro}>Ainda não tem uma conta?</Text>
             <Pressable
               onPress={() => router.push('/cadastro')}
               disabled={carregando}
+              hitSlop={8}
             >
               <Text style={styles.link}>Cadastre-se</Text>
             </Pressable>
@@ -163,7 +187,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: cores.fundo,
   },
 
   scrollConteudo: {
@@ -174,69 +198,119 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     width: '100%',
-    paddingHorizontal: '9%',
-    paddingVertical: 24,
+    maxWidth: 440,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+
+  cabecalho: {
+    marginBottom: 28,
+  },
+
+  selo: {
+    alignSelf: 'flex-start',
+    backgroundColor: cores.primarioSuave,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: cores.acento,
+  },
+
+  seloTexto: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2.5,
+    color: cores.primario,
   },
 
   titulo: {
-    fontSize: 21,
-    color: '#111111',
-    textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 27,
+    fontSize: 30,
+    fontWeight: '800',
+    color: cores.texto,
+    lineHeight: 36,
+    letterSpacing: -0.5,
   },
 
-  formulario: {
+  descricao: {
+    fontSize: 14,
+    color: cores.secundario,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+
+  cartao: {
     width: '100%',
+    backgroundColor: cores.cartao,
+    borderRadius: 20,
+    padding: 22,
     borderWidth: 1,
-    borderColor: '#999999',
-    borderRadius: 6,
-    padding: 16,
-    paddingTop: 20,
-  },
-
-  subtitulo: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 22,
-    color: '#111111',
+    borderColor: cores.borda,
+    shadowColor: '#0F1B2D',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 3,
   },
 
   label: {
     fontSize: 12,
-    color: '#333333',
-    marginBottom: 6,
+    fontWeight: '600',
+    color: cores.secundario,
+    marginBottom: 8,
   },
 
   input: {
     width: '100%',
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+    height: 50,
+    borderWidth: 1.5,
+    borderColor: cores.borda,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 18,
+    fontSize: 15,
+    color: cores.texto,
+    backgroundColor: cores.input,
+  },
+
+  inputFocado: {
+    borderColor: cores.primario,
+    backgroundColor: cores.cartao,
+  },
+
+  caixaErro: {
+    backgroundColor: cores.erroFundo,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 16,
-    fontSize: 13,
-    color: '#111111',
-    backgroundColor: '#FFFFFF',
   },
 
   erro: {
-    color: '#D32F2F',
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 12,
+    color: cores.erro,
+    fontSize: 13,
+    lineHeight: 18,
   },
 
   botao: {
-    height: 44,
-    backgroundColor: '#00549A',
-    borderRadius: 5,
+    height: 52,
+    backgroundColor: cores.primario,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
-    marginBottom: 22,
+    shadowColor: cores.primario,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+
+  botaoPressionado: {
+    opacity: 0.88,
+    transform: [{ scale: 0.985 }],
   },
 
   botaoDesativado: {
@@ -245,21 +319,26 @@ const styles = StyleSheet.create({
 
   textoBotao: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  rodape: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 26,
   },
 
   textoCadastro: {
-    color: '#333333',
-    fontSize: 12,
-    textAlign: 'center',
+    color: cores.secundario,
+    fontSize: 13,
   },
 
   link: {
-    color: '#0000FF',
-    fontSize: 12,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
-    marginTop: 4,
+    color: cores.primario,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

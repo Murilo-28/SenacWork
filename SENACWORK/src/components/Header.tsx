@@ -1,20 +1,19 @@
-
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type HeaderProps = {
   showMenu?: boolean;
   showProfile?: boolean;
 };
 
-export default function Header({
-  showMenu = true,
-  showProfile = true,
-}: HeaderProps) {
+export default function Header(_props: HeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.texto}>
-        Achados e Perdidos do SENAC
-      </Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.content}>
+        <Text style={styles.texto}>Achados e Perdidos do SENAC</Text>
+      </View>
     </View>
   );
 }
@@ -22,12 +21,19 @@ export default function Header({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#00549A',
-    padding: 20,
-    alignItems: 'center',
   },
+
+  content: {
+    height: 56,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   texto: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 });

@@ -1,130 +1,79 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 
+import { Colors, type Paleta } from '../constants/theme';
 import { useTema } from '../contexts/ThemeContext';
 
 export default function PerfilScreen() {
   const { modoEscuro } = useTema();
+
+  const cores = modoEscuro ? Colors.dark : Colors.light;
+  const styles = useMemo(() => criarEstilos(cores), [cores]);
 
   const [nome, setNome] = useState('Seu nome');
   const [email, setEmail] = useState('seuemail@email.com');
   const [editando, setEditando] = useState(false);
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: modoEscuro ? '#061A36' : '#F5F5F5',
-        },
-      ]}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.conteudo}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <Text
-        style={[
-          styles.titulo,
-          { color: modoEscuro ? '#FFFFFF' : '#111111' },
-        ]}
-      >
-        Meu perfil
-      </Text>
+      <View style={styles.cabecalho}>
+        <Text style={styles.titulo}>Meu perfil</Text>
+        <Text style={styles.subtitulo}>Seus dados no app</Text>
+      </View>
 
-      <View
-        style={[
-          styles.cartao,
-          {
-            backgroundColor: modoEscuro ? '#0B3456' : '#FFFFFF',
-            borderColor: modoEscuro ? '#174E78' : '#E0E0E0',
-          },
-        ]}
-      >
+      <View style={styles.cartao}>
         <View style={styles.avatar}>
           <Text style={styles.letra}>
             {nome.trim().charAt(0).toUpperCase() || '?'}
           </Text>
         </View>
 
-        <Text
-          style={[
-            styles.nome,
-            { color: modoEscuro ? '#FFFFFF' : '#222222' },
-          ]}
-        >
-          {nome}
-        </Text>
-
-        <Text
-          style={[
-            styles.tipo,
-            { color: modoEscuro ? '#B8C7D9' : '#777777' },
-          ]}
-        >
-          Usuário do SENAC
-        </Text>
+        <Text style={styles.nome}>{nome}</Text>
+        <Text style={styles.tipo}>Usuário do SENAC</Text>
 
         <View style={styles.divisor} />
 
-        <Text
-          style={[
-            styles.label,
-            { color: modoEscuro ? '#FFFFFF' : '#333333' },
-          ]}
-        >
-          Nome
-        </Text>
-
+        <Text style={styles.label}>Nome</Text>
         <TextInput
-          style={[
-            styles.input,
-            {
-              color: modoEscuro ? '#FFFFFF' : '#222222',
-              backgroundColor: modoEscuro ? '#082746' : '#F8F8F8',
-              borderColor: modoEscuro ? '#24577E' : '#D5D5D5',
-            },
-          ]}
+          style={[styles.input, editando && styles.inputEditando]}
           value={nome}
           onChangeText={setNome}
           editable={editando}
           placeholder="Digite seu nome"
-          placeholderTextColor={modoEscuro ? '#91A6BA' : '#999999'}
+          placeholderTextColor={cores.secundario}
         />
 
-        <Text
-          style={[
-            styles.label,
-            { color: modoEscuro ? '#FFFFFF' : '#333333' },
-          ]}
-        >
-          E-mail
-        </Text>
-
+        <Text style={styles.label}>E-mail</Text>
         <TextInput
-          style={[
-            styles.input,
-            {
-              color: modoEscuro ? '#FFFFFF' : '#222222',
-              backgroundColor: modoEscuro ? '#082746' : '#F8F8F8',
-              borderColor: modoEscuro ? '#24577E' : '#D5D5D5',
-            },
-          ]}
+          style={[styles.input, editando && styles.inputEditando]}
           value={email}
           onChangeText={setEmail}
           editable={editando}
           placeholder="Digite seu e-mail"
-          placeholderTextColor={modoEscuro ? '#91A6BA' : '#999999'}
+          placeholderTextColor={cores.secundario}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
         <Pressable
-          style={styles.botao}
+          style={({ pressed }) => [
+            styles.botao,
+            pressed && styles.botaoPressionado,
+          ]}
           onPress={() => {
             if (editando) {
               setEditando(false);
@@ -139,89 +88,134 @@ export default function PerfilScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.fundo,
+    },
 
-  titulo: {
-    fontSize: 29,
-    fontWeight: 'bold',
-    marginBottom: 22,
-  },
+    conteudo: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      paddingTop: 28,
+      paddingBottom: 32,
+    },
 
-  cartao: {
-    borderWidth: 1,
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'stretch',
-  },
+    cabecalho: {
+      marginBottom: 24,
+    },
 
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#F7941D',
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
+    titulo: {
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+      color: c.texto,
+    },
 
-  letra: {
-    color: '#FFFFFF',
-    fontSize: 38,
-    fontWeight: 'bold',
-  },
+    subtitulo: {
+      fontSize: 14,
+      color: c.secundario,
+      marginTop: 6,
+    },
 
-  nome: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
+    cartao: {
+      backgroundColor: c.superficie,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.borda,
+      padding: 22,
+    },
 
-  tipo: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 5,
-  },
+    avatar: {
+      width: 84,
+      height: 84,
+      borderRadius: 42,
+      backgroundColor: c.primarioSuave,
+      borderWidth: 3,
+      borderColor: c.acento,
+      alignSelf: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+    },
 
-  divisor: {
-    height: 1,
-    backgroundColor: '#D5D5D5',
-    marginVertical: 22,
-  },
+    letra: {
+      color: c.primario,
+      fontSize: 34,
+      fontWeight: '800',
+    },
 
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 7,
-  },
+    nome: {
+      fontSize: 20,
+      fontWeight: '700',
+      textAlign: 'center',
+      color: c.texto,
+    },
 
-  input: {
-    borderWidth: 1,
-    borderRadius: 9,
-    padding: 12,
-    fontSize: 15,
-    marginBottom: 17,
-  },
+    tipo: {
+      fontSize: 13,
+      textAlign: 'center',
+      color: c.secundario,
+      marginTop: 4,
+    },
 
-  botao: {
-    backgroundColor: '#F7941D',
-    padding: 14,
-    borderRadius: 9,
-    alignItems: 'center',
-    marginTop: 5,
-  },
+    divisor: {
+      height: 1,
+      backgroundColor: c.borda,
+      marginVertical: 22,
+    },
 
-  textoBotao: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+    label: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: c.secundario,
+      marginBottom: 8,
+    },
+
+    input: {
+      height: 50,
+      borderWidth: 1.5,
+      borderColor: c.borda,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      marginBottom: 18,
+      fontSize: 15,
+      color: c.texto,
+      backgroundColor: c.fundo,
+    },
+
+    inputEditando: {
+      borderColor: c.primario,
+      backgroundColor: c.superficie,
+    },
+
+    botao: {
+      height: 52,
+      backgroundColor: c.primario,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 4,
+      shadowColor: c.primario,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+
+    botaoPressionado: {
+      opacity: 0.88,
+      transform: [{ scale: 0.985 }],
+    },
+
+    textoBotao: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '700',
+    },
+  });

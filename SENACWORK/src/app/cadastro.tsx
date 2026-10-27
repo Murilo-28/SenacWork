@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 
 import {
@@ -9,16 +10,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-type Usuario = {
-    nome: string;
-    email: string;
-    senha: string;
-};
+import { auth, db } from '../services/firebase';
 
 export default function CadastroScreen() {
     const [nome, setNome] = useState('');
@@ -26,13 +25,17 @@ export default function CadastroScreen() {
     const [senha, setSenha] = useState('');
     const [confirmarSenha, setConfirmarSenha] = useState('');
     const [mensagem, setMensagem] = useState('');
+    const [carregando, setCarregando] = useState(false);
 
     async function cadastrar() {
+        if (carregando) return;
+
         setMensagem('');
 
+        const nomeLimpo = nome.trim();
         const emailLimpo = email.trim().toLowerCase();
 
-        if (!nome.trim() || !emailLimpo || !senha || !confirmarSenha) {
+        if (!nomeLimpo || !emailLimpo || !senha || !confirmarSenha) {
             setMensagem('Preencha todos os campos.');
             return;
         }
@@ -52,31 +55,57 @@ export default function CadastroScreen() {
             return;
         }
 
-        try {
-            const dados = await AsyncStorage.getItem('usuarios');
-            const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
+        setCarregando(true);
 
-            const emailExiste = usuarios.some(
-                usuario => usuario.email === emailLimpo
+        try {
+            const credencial = await createUserWithEmailAndPassword(
+                auth,
+                emailLimpo,
+                senha
             );
 
-            if (emailExiste) {
-                setMensagem('E-mail já cadastrado. Utilize outro e-mail ou faça login.');
-                return;
-            }
+            const usuario = credencial.user;
 
-            usuarios.push({
-                nome: nome.trim(),
-                email: emailLimpo,
-                senha: senha,
+            await updateProfile(usuario, {
+                displayName: nomeLimpo,
             });
 
-            await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+            await setDoc(doc(db, 'usuarios', usuario.uid), {
+                uid: usuario.uid,
+                nome: nomeLimpo,
+                email: emailLimpo,
+                criadoEm: serverTimestamp(),
+            });
 
             router.replace('/');
-        } catch (erro) {
+        } catch (erro: any) {
             console.error('Erro ao cadastrar:', erro);
-            setMensagem('Não foi possível salvar o cadastro.');
+
+            switch (erro.code) {
+                case 'auth/email-already-in-use':
+                    setMensagem('Este e-mail já está cadastrado. Faça login.');
+                    break;
+
+                case 'auth/invalid-email':
+                    setMensagem('O e-mail informado é inválido.');
+                    break;
+
+                case 'auth/weak-password':
+                    setMensagem('Escolha uma senha mais forte.');
+                    break;
+
+                case 'auth/network-request-failed':
+                    setMensagem('Sem conexão. Verifique sua internet e tente novamente.');
+                    break;
+
+                default:
+                    setMensagem(
+                        'Não foi possível concluir o cadastro. Tente novamente.'
+                    );
+                    break;
+            }
+        } finally {
+            setCarregando(false);
         }
     }
 
@@ -105,6 +134,7 @@ export default function CadastroScreen() {
                         value={nome}
                         onChangeText={setNome}
                         autoCapitalize="words"
+                        editable={!carregando}
                     />
 
                     <Text style={styles.label}>Email</Text>
@@ -116,6 +146,7 @@ export default function CadastroScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        editable={!carregando}
                     />
 
                     <Text style={styles.label}>Senha</Text>
@@ -125,6 +156,7 @@ export default function CadastroScreen() {
                         value={senha}
                         onChangeText={setSenha}
                         secureTextEntry
+                        editable={!carregando}
                     />
 
                     <Text style={styles.label}>Confirmar senha</Text>
@@ -134,19 +166,36 @@ export default function CadastroScreen() {
                         value={confirmarSenha}
                         onChangeText={setConfirmarSenha}
                         secureTextEntry
+                        editable={!carregando}
                     />
 
                     {mensagem !== '' && (
                         <Text style={styles.erro}>{mensagem}</Text>
                     )}
 
-                    <Pressable style={styles.botao} onPress={cadastrar}>
-                        <Text style={styles.textoBotao}>Cadastrar</Text>
+                    <Pressable
+                        style={[
+                            styles.botao,
+                            carregando && styles.botaoDesativado,
+                        ]}
+                        onPress={cadastrar}
+                        disabled={carregando}
+                    >
+                        {carregando ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text style={styles.textoBotao}>Cadastrar</Text>
+                        )}
                     </Pressable>
 
-                    <Text style={styles.textoLogin}>Já possui uma conta?</Text>
+                    <Text style={styles.textoLogin}>
+                        Já possui uma conta?
+                    </Text>
 
-                    <Pressable onPress={() => router.replace('/')}>
+                    <Pressable
+                        onPress={() => router.replace('/')}
+                        disabled={carregando}
+                    >
                         <Text style={styles.link}>Fazer login</Text>
                     </Pressable>
                 </View>
@@ -226,6 +275,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 4,
         marginBottom: 20,
+    },
+
+    botaoDesativado: {
+        opacity: 0.7,
     },
 
     textoBotao: {

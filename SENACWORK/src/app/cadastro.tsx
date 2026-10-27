@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
@@ -43,6 +44,8 @@ export default function CadastroScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [focado, setFocado] = useState<Campo | null>(null);
 
@@ -102,13 +105,15 @@ export default function CadastroScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <Header showMenu={false} showProfile={false} />
 
       <ScrollView
         contentContainerStyle={styles.scrollConteudo}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.conteudo}>
@@ -152,36 +157,77 @@ export default function CadastroScreen() {
             />
 
             <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={[styles.input, focado === 'senha' && styles.inputFocado]}
-              placeholder="Mínimo de 6 caracteres"
-              placeholderTextColor="#A3AFC0"
-              value={senha}
-              onChangeText={setSenha}
-              onFocus={() => setFocado('senha')}
-              onBlur={() => setFocado(null)}
-              secureTextEntry
-              autoCapitalize="none"
-              returnKeyType="next"
-            />
+            <View style={styles.campoSenha}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputSenha,
+                  focado === 'senha' && styles.inputFocado,
+                ]}
+                placeholder="Mínimo de 6 caracteres"
+                placeholderTextColor="#A3AFC0"
+                value={senha}
+                onChangeText={setSenha}
+                onFocus={() => setFocado('senha')}
+                onBlur={() => setFocado(null)}
+                secureTextEntry={!mostrarSenha}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+              />
+
+              <Pressable
+                style={styles.olho}
+                onPress={() => setMostrarSenha((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel={
+                  mostrarSenha ? 'Esconder senha' : 'Mostrar senha'
+                }
+              >
+                <Ionicons
+                  name={mostrarSenha ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={cores.secundario}
+                />
+              </Pressable>
+            </View>
 
             <Text style={styles.label}>Confirmar senha</Text>
-            <TextInput
-              style={[
-                styles.input,
-                focado === 'confirmar' && styles.inputFocado,
-              ]}
-              placeholder="Repita a senha"
-              placeholderTextColor="#A3AFC0"
-              value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
-              onFocus={() => setFocado('confirmar')}
-              onBlur={() => setFocado(null)}
-              secureTextEntry
-              autoCapitalize="none"
-              returnKeyType="done"
-              onSubmitEditing={cadastrar}
-            />
+            <View style={styles.campoSenha}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputSenha,
+                  focado === 'confirmar' && styles.inputFocado,
+                ]}
+                placeholder="Repita a senha"
+                placeholderTextColor="#A3AFC0"
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+                onFocus={() => setFocado('confirmar')}
+                onBlur={() => setFocado(null)}
+                secureTextEntry={!mostrarConfirmar}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={cadastrar}
+              />
+
+              <Pressable
+                style={styles.olho}
+                onPress={() => setMostrarConfirmar((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel={
+                  mostrarConfirmar ? 'Esconder senha' : 'Mostrar senha'
+                }
+              >
+                <Ionicons
+                  name={mostrarConfirmar ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={cores.secundario}
+                />
+              </Pressable>
+            </View>
 
             {mensagem !== '' && (
               <View style={styles.caixaErro}>
@@ -220,6 +266,7 @@ const styles = StyleSheet.create({
 
   scrollConteudo: {
     flexGrow: 1,
+    paddingBottom: 24,
   },
 
   conteudo: {
@@ -306,6 +353,25 @@ const styles = StyleSheet.create({
   inputFocado: {
     borderColor: cores.primario,
     backgroundColor: cores.cartao,
+  },
+
+  campoSenha: {
+    marginBottom: 18,
+  },
+
+  inputSenha: {
+    marginBottom: 0,
+    paddingRight: 48,
+  },
+
+  olho: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 48,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   caixaErro: {

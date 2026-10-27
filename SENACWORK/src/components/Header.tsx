@@ -21,6 +21,8 @@ export default function Header(_props: HeaderProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#00549A',
+    borderBottomWidth: 3,
+    borderBottomColor: '#F7941D',
   },
 
   content: {

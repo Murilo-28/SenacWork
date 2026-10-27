@@ -11,11 +11,12 @@ import { ThemeProvider, useTema } from '../contexts/ThemeContext';
 
 const ALTURA_BARRA = 56;
 
-type Rota = '/home' | '/solicitacao' | '/config' | '/perfil';
+type Rota = '/home' | '/solicitacao' | '/mensagens' | '/config' | '/perfil';
 
 const itens = [
   { nome: 'Home', icone: 'home-outline', rota: '/home' },
   { nome: 'Solicitar', icone: 'document-text-outline', rota: '/solicitacao' },
+  { nome: 'Mensagens', icone: 'chatbubbles-outline', rota: '/mensagens' },
   { nome: 'Config', icone: 'settings-outline', rota: '/config' },
 ] as const;
 
@@ -166,8 +167,8 @@ const criarEstilos = (c: Paleta) =>
       alignItems: 'center',
       paddingHorizontal: 16,
       backgroundColor: c.superficie,
-      borderBottomWidth: 1,
-      borderBottomColor: c.borda,
+      borderBottomWidth: 3,
+      borderBottomColor: c.destaque,
       zIndex: 10,
     },
 

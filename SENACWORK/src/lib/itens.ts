@@ -10,6 +10,8 @@ export type Item = {
   detalhes?: string;
   foto?: string | null;
   autor: string;
+  donoEmail: string;
+  encontrado: boolean;
   ordem: number;
 };
 
@@ -34,6 +36,14 @@ async function ler(chave: string): Promise<any[]> {
   }
 }
 
+// Descobre onde o item foi salvo e qual é o id dele
+function origem(chave: string) {
+  return {
+    armazenamento: chave.startsWith('s-') ? 'solicitacoes' : 'produtosPerdidos',
+    id: Number(chave.slice(2)),
+  };
+}
+
 // Junta solicitações e itens cadastrados numa lista só (mais novos primeiro)
 export async function carregarItens(): Promise<Item[]> {
   const solicitacoes = await ler('solicitacoes');
@@ -48,6 +58,8 @@ export async function carregarItens(): Promise<Item[]> {
     detalhes: s.detalhes,
     foto: null,
     autor: s.usuarioNome ?? '',
+    donoEmail: s.usuarioEmail ?? '',
+    encontrado: !!s.encontrado,
     ordem: s.id,
   }));
 
@@ -61,10 +73,41 @@ export async function carregarItens(): Promise<Item[]> {
     detalhes: p.descricao,
     foto: p.foto ?? null,
     autor: '',
+    donoEmail: p.donoEmail ?? '',
+    encontrado: !!p.encontrado,
     ordem: p.id,
   }));
 
   return [...deSolicitacoes, ...deProdutos].sort((a, b) => b.ordem - a.ordem);
+}
+
+// Liga/desliga "item encontrado" no lugar onde o item foi salvo
+export async function alternarEncontrado(chave: string) {
+  const { armazenamento, id } = origem(chave);
+
+  const lista = await ler(armazenamento);
+  const nova = lista.map((i) =>
+    i.id === id ? { ...i, encontrado: !i.encontrado } : i
+  );
+
+  await AsyncStorage.setItem(armazenamento, JSON.stringify(nova));
+}
+
+// Apaga o item e as mensagens dele
+export async function excluirItem(chave: string) {
+  const { armazenamento, id } = origem(chave);
+
+  const lista = await ler(armazenamento);
+  await AsyncStorage.setItem(
+    armazenamento,
+    JSON.stringify(lista.filter((i) => i.id !== id))
+  );
+
+  const mensagens = await ler('mensagens');
+  await AsyncStorage.setItem(
+    'mensagens',
+    JSON.stringify(mensagens.filter((m) => m.chave !== chave))
+  );
 }
 
 export async function carregarMensagens(): Promise<Mensagem[]> {

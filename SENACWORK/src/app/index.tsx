@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
@@ -39,6 +40,7 @@ const cores = {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [focado, setFocado] = useState<'email' | 'senha' | null>(null);
@@ -94,13 +96,15 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <Header showMenu={false} showProfile={false} />
 
       <ScrollView
         contentContainerStyle={styles.scrollConteudo}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.conteudo}>
@@ -132,20 +136,42 @@ export default function LoginScreen() {
             />
 
             <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={[styles.input, focado === 'senha' && styles.inputFocado]}
-              placeholder="••••••••"
-              placeholderTextColor="#A3AFC0"
-              value={senha}
-              onChangeText={setSenha}
-              onFocus={() => setFocado('senha')}
-              onBlur={() => setFocado(null)}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!carregando}
-              returnKeyType="done"
-              onSubmitEditing={entrar}
-            />
+            <View style={styles.campoSenha}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputSenha,
+                  focado === 'senha' && styles.inputFocado,
+                ]}
+                placeholder="••••••••"
+                placeholderTextColor="#A3AFC0"
+                value={senha}
+                onChangeText={setSenha}
+                onFocus={() => setFocado('senha')}
+                onBlur={() => setFocado(null)}
+                secureTextEntry={!mostrarSenha}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!carregando}
+                returnKeyType="done"
+                onSubmitEditing={entrar}
+              />
+
+              <Pressable
+                style={styles.olho}
+                onPress={() => setMostrarSenha((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel={
+                  mostrarSenha ? 'Esconder senha' : 'Mostrar senha'
+                }
+              >
+                <Ionicons
+                  name={mostrarSenha ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={cores.secundario}
+                />
+              </Pressable>
+            </View>
 
             {mensagem !== '' && (
               <View style={styles.caixaErro}>
@@ -192,6 +218,7 @@ const styles = StyleSheet.create({
 
   scrollConteudo: {
     flexGrow: 1,
+    paddingBottom: 24,
   },
 
   conteudo: {
@@ -278,6 +305,25 @@ const styles = StyleSheet.create({
   inputFocado: {
     borderColor: cores.primario,
     backgroundColor: cores.cartao,
+  },
+
+  campoSenha: {
+    marginBottom: 18,
+  },
+
+  inputSenha: {
+    marginBottom: 0,
+    paddingRight: 48,
+  },
+
+  olho: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 48,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   caixaErro: {

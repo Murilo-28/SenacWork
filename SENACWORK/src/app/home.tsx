@@ -8,6 +8,7 @@ import {
   Image,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -15,17 +16,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, type Paleta } from '../constants/theme';
 import { useTema } from '../contexts/ThemeContext';
-
-type Produto = {
-  id: number;
-  nome: string;
-  categoria: string;
-  local: string;
-  data: string;
-  descricao?: string;
-  foto?: string | null;
-  status: string;
-};
+import {
+  alternarEncontrado,
+  carregarItens,
+  carregarMensagens,
+  excluirItem,
+  type Item,
+} from '../lib/itens';
 
 export default function Home() {
   const { modoEscuro } = useTema();
@@ -37,18 +34,28 @@ export default function Home() {
     [cores, insets.bottom]
   );
 
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [itens, setItens] = useState<Item[]>([]);
+  const [respostas, setRespostas] = useState<Record<string, number>>({});
+  const [emailLogado, setEmailLogado] = useState('');
+  const [confirmando, setConfirmando] = useState<string | null>(null);
 
-  // Recarrega a lista toda vez que a tela volta a ficar em foco
+  // Recarrega toda vez que a tela volta a ficar em foco
   useFocusEffect(
     useCallback(() => {
       async function carregar() {
-        try {
-          const dados = await AsyncStorage.getItem('produtosPerdidos');
-          setProdutos(dados ? JSON.parse(dados) : []);
-        } catch (erro) {
-          console.log('Erro ao carregar produtos:', erro);
-        }
+        const lista = await carregarItens();
+        const mensagens = await carregarMensagens();
+        const logado = await AsyncStorage.getItem('usuarioLogado');
+
+        const contagem: Record<string, number> = {};
+        mensagens.forEach((m) => {
+          contagem[m.chave] = (contagem[m.chave] ?? 0) + 1;
+        });
+
+        setItens(lista);
+        setRespostas(contagem);
+        setEmailLogado(logado ? JSON.parse(logado).email ?? '' : '');
+        setConfirmando(null);
       }
 
       carregar();
@@ -59,49 +66,163 @@ export default function Home() {
     router.push('/addProduto');
   }
 
-  function renderItem({ item }: { item: Produto }) {
+  function abrirItem(chave: string) {
+    router.push({ pathname: '/item', params: { chave } });
+  }
+
+  function inverter(chave: string) {
+    setItens((atual) =>
+      atual.map((i) =>
+        i.chave === chave ? { ...i, encontrado: !i.encontrado } : i
+      )
+    );
+  }
+
+  async function alternar(chave: string) {
+    // Atualiza na hora; se falhar ao salvar, desfaz
+    inverter(chave);
+
+    try {
+      await alternarEncontrado(chave);
+    } catch (erro) {
+      console.log('Erro ao marcar item como encontrado:', erro);
+      inverter(chave);
+    }
+  }
+
+  async function excluir(chave: string) {
+    try {
+      await excluirItem(chave);
+      setItens((atual) => atual.filter((i) => i.chave !== chave));
+      setConfirmando(null);
+    } catch (erro) {
+      console.log('Erro ao excluir item:', erro);
+    }
+  }
+
+  function renderItem({ item }: { item: Item }) {
+    const total = respostas[item.chave] ?? 0;
+    const comResposta = total > 0;
+    const ehDono = !!emailLogado && item.donoEmail === emailLogado;
+    const pedindoConfirmacao = confirmando === item.chave;
+
     return (
-      <View style={styles.item}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.item,
+          item.encontrado && styles.itemEncontrado,
+          pressed && styles.itemPressionado,
+        ]}
+        onPress={() => abrirItem(item.chave)}
+      >
         {item.foto ? (
           <Image source={{ uri: item.foto }} style={styles.itemFoto} />
         ) : (
           <View style={[styles.itemFoto, styles.itemSemFoto]}>
-            <Ionicons
-              name="cube-outline"
-              size={26}
-              color={cores.primario}
-            />
+            <Ionicons name="cube-outline" size={26} color={cores.primario} />
           </View>
         )}
 
         <View style={styles.itemTextos}>
           <View style={styles.itemTopo}>
             <Text style={styles.itemNome} numberOfLines={1}>
-              {item.nome}
+              {item.titulo}
             </Text>
-            <View style={styles.status}>
-              <Text style={styles.statusTexto}>
-                {item.status === 'perdido' ? 'Perdido' : 'Achado'}
-              </Text>
-            </View>
+
+            {item.encontrado ? (
+              <View style={[styles.status, styles.statusEncontrado]}>
+                <Text style={[styles.statusTexto, styles.statusTextoEncontrado]}>
+                  Encontrado
+                </Text>
+              </View>
+            ) : (
+              <View
+                style={[styles.status, comResposta && styles.statusResposta]}
+              >
+                <Text
+                  style={[
+                    styles.statusTexto,
+                    comResposta && styles.statusTextoResposta,
+                  ]}
+                >
+                  {comResposta ? 'Com resposta' : 'Perdido'}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.itemInfo} numberOfLines={1}>
-            {item.categoria}
-          </Text>
-          <Text style={styles.itemInfo} numberOfLines={1}>
             {item.local} · {item.data}
           </Text>
+
+          <View style={styles.itemRodape}>
+            <Ionicons
+              name="chatbubble-outline"
+              size={13}
+              color={cores.secundario}
+            />
+            <Text style={styles.itemInfo}>
+              {total === 1 ? '1 mensagem' : `${total} mensagens`}
+            </Text>
+          </View>
+
+          {/* CONFIRMAR EXCLUSÃO (só o dono chega aqui) */}
+          {pedindoConfirmacao ? (
+            <View style={styles.confirma}>
+              <Text style={styles.confirmaTexto}>Excluir este item?</Text>
+
+              <View style={styles.confirmaBotoes}>
+                <Pressable
+                  style={styles.botaoCancelar}
+                  onPress={() => setConfirmando(null)}
+                  hitSlop={6}
+                >
+                  <Text style={styles.textoCancelar}>Cancelar</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.botaoExcluir}
+                  onPress={() => excluir(item.chave)}
+                  hitSlop={6}
+                >
+                  <Text style={styles.textoExcluir}>Excluir</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            /* AÇÕES: interruptor para todos, lixeira só para o dono */
+            <View style={styles.acoes}>
+              <View style={styles.grupoEncontrado}>
+                <Text style={styles.opcaoTexto}>Item encontrado</Text>
+                <Switch
+                  value={item.encontrado}
+                  onValueChange={() => alternar(item.chave)}
+                  trackColor={{ false: cores.borda, true: '#1B8A4B' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {ehDono && (
+                <Pressable
+                  style={styles.lixeira}
+                  onPress={() => setConfirmando(item.chave)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#D32F2F" />
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
-      </View>
+      </Pressable>
     );
   }
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={produtos}
-        keyExtractor={(item) => String(item.id)}
+        data={itens}
+        keyExtractor={(item) => item.chave}
         renderItem={renderItem}
         contentContainerStyle={styles.lista}
         showsVerticalScrollIndicator={false}
@@ -185,6 +306,14 @@ const criarEstilos = (c: Paleta, bottom: number) =>
       marginBottom: 12,
     },
 
+    itemEncontrado: {
+      borderColor: '#1B8A4B',
+    },
+
+    itemPressionado: {
+      opacity: 0.85,
+    },
+
     itemFoto: {
       width: 64,
       height: 64,
@@ -219,9 +348,94 @@ const criarEstilos = (c: Paleta, bottom: number) =>
     itemInfo: {
       fontSize: 13,
       color: c.secundario,
-      marginTop: 1,
     },
 
+    itemRodape: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 6,
+    },
+
+    /* AÇÕES: ENCONTRADO + LIXEIRA */
+    acoes: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 10,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: c.borda,
+    },
+
+    grupoEncontrado: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+
+    opcaoTexto: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: c.texto,
+    },
+
+    lixeira: {
+      marginLeft: 'auto',
+      padding: 4,
+    },
+
+    /* CONFIRMAÇÃO */
+    confirma: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: c.borda,
+      gap: 10,
+    },
+
+    confirmaTexto: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: c.texto,
+    },
+
+    confirmaBotoes: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+
+    botaoCancelar: {
+      flex: 1,
+      height: 36,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.borda,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    textoCancelar: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: c.secundario,
+    },
+
+    botaoExcluir: {
+      flex: 1,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: '#D32F2F',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    textoExcluir: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+
+    /* SELOS */
     status: {
       backgroundColor: c.primarioSuave,
       borderRadius: 999,
@@ -229,10 +443,26 @@ const criarEstilos = (c: Paleta, bottom: number) =>
       paddingVertical: 3,
     },
 
+    statusResposta: {
+      backgroundColor: '#E8F6EE',
+    },
+
+    statusEncontrado: {
+      backgroundColor: '#1B8A4B',
+    },
+
     statusTexto: {
       fontSize: 11,
       fontWeight: '700',
       color: c.primario,
+    },
+
+    statusTextoResposta: {
+      color: '#1B8A4B',
+    },
+
+    statusTextoEncontrado: {
+      color: '#FFFFFF',
     },
 
     /* VAZIO */
@@ -270,7 +500,7 @@ const criarEstilos = (c: Paleta, bottom: number) =>
       marginTop: 6,
     },
 
-    /* BOTÃO + */
+    /* BOTÃO + (laranja do Senac no modo claro) */
     botaoAdicionar: {
       position: 'absolute',
       right: 24,
@@ -278,10 +508,10 @@ const criarEstilos = (c: Paleta, bottom: number) =>
       width: 60,
       height: 60,
       borderRadius: 30,
-      backgroundColor: c.primario,
+      backgroundColor: c.acao,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: c.primario,
+      shadowColor: c.acao,
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.3,
       shadowRadius: 14,

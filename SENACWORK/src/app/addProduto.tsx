@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 
 import {
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,8 +16,11 @@ import {
 
 import { Colors, type Paleta } from '../constants/theme';
 import { useTema } from '../contexts/ThemeContext';
+import { escolherFoto, type OrigemFoto } from '../lib/foto';
 
 type Campo = 'nome' | 'categoria' | 'local' | 'data' | 'descricao';
+
+const temCamera = Platform.OS !== 'web';
 
 export default function AdicionarProduto() {
   const { modoEscuro } = useTema();
@@ -35,21 +38,15 @@ export default function AdicionarProduto() {
   const [salvando, setSalvando] = useState(false);
   const [focado, setFocado] = useState<Campo | null>(null);
 
-  async function escolherFoto() {
-    try {
-      const resultado = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.4,
-      });
+  async function pegarFoto(origem: OrigemFoto) {
+    setMensagem('');
 
-      if (!resultado.canceled) {
-        setFoto(resultado.assets[0].uri);
-      }
-    } catch (erro) {
-      console.log('Erro ao escolher foto:', erro);
-      setMensagem('Não foi possível abrir a galeria.');
+    const resultado = await escolherFoto(origem);
+
+    if ('uri' in resultado) {
+      setFoto(resultado.uri);
+    } else if ('erro' in resultado) {
+      setMensagem(resultado.erro);
     }
   }
 
@@ -66,6 +63,10 @@ export default function AdicionarProduto() {
     try {
       setSalvando(true);
 
+      // Guarda quem adicionou o item (só essa pessoa pode marcar como encontrado)
+      const logado = await AsyncStorage.getItem('usuarioLogado');
+      const usuario = logado ? JSON.parse(logado) : null;
+
       const novoProduto = {
         id: Date.now(),
         nome: nome.trim(),
@@ -75,6 +76,9 @@ export default function AdicionarProduto() {
         descricao: descricao.trim(),
         foto,
         status: 'perdido',
+        donoEmail: usuario?.email ?? '',
+        donoNome: usuario?.nome ?? '',
+        encontrado: false,
       };
 
       const produtosSalvos = await AsyncStorage.getItem('produtosPerdidos');
@@ -173,13 +177,19 @@ export default function AdicionarProduto() {
           onBlur={() => setFocado(null)}
         />
 
+        {/* FOTO */}
         {foto ? (
           <View style={styles.fotoBloco}>
             <Image source={{ uri: foto }} style={styles.fotoPreview} />
 
             <View style={styles.fotoAcoes}>
-              <Pressable onPress={escolherFoto} hitSlop={8}>
-                <Text style={styles.fotoAcao}>Trocar foto</Text>
+              {temCamera && (
+                <Pressable onPress={() => pegarFoto('camera')} hitSlop={8}>
+                  <Text style={styles.fotoAcao}>Câmera</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={() => pegarFoto('galeria')} hitSlop={8}>
+                <Text style={styles.fotoAcao}>Galeria</Text>
               </Pressable>
               <Pressable onPress={() => setFoto(null)} hitSlop={8}>
                 <Text style={[styles.fotoAcao, styles.fotoRemover]}>
@@ -189,16 +199,39 @@ export default function AdicionarProduto() {
             </View>
           </View>
         ) : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.botaoFoto,
-              pressed && styles.botaoPressionado,
-            ]}
-            onPress={escolherFoto}
-          >
-            <Ionicons name="camera-outline" size={20} color={cores.primario} />
-            <Text style={styles.textoBotaoFoto}>Adicionar foto</Text>
-          </Pressable>
+          <View style={styles.botoesFoto}>
+            {temCamera && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.botaoFoto,
+                  pressed && styles.botaoPressionado,
+                ]}
+                onPress={() => pegarFoto('camera')}
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={20}
+                  color={cores.primario}
+                />
+                <Text style={styles.textoBotaoFoto}>Câmera</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.botaoFoto,
+                pressed && styles.botaoPressionado,
+              ]}
+              onPress={() => pegarFoto('galeria')}
+            >
+              <Ionicons
+                name="images-outline"
+                size={20}
+                color={cores.primario}
+              />
+              <Text style={styles.textoBotaoFoto}>Galeria</Text>
+            </Pressable>
+          </View>
         )}
 
         {mensagem !== '' && (
@@ -297,7 +330,14 @@ const criarEstilos = (c: Paleta) =>
       textAlignVertical: 'top',
     },
 
+    botoesFoto: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 14,
+    },
+
     botaoFoto: {
+      flex: 1,
       height: 50,
       flexDirection: 'row',
       alignItems: 'center',
@@ -308,7 +348,6 @@ const criarEstilos = (c: Paleta) =>
       borderColor: c.primario,
       backgroundColor: c.primarioSuave,
       borderRadius: 12,
-      marginBottom: 14,
     },
 
     textoBotaoFoto: {

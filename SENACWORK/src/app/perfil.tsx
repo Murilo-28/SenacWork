@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,8 +11,15 @@ import {
   View,
 } from 'react-native';
 
+import { LIMITES } from '../constants/limites';
 import { Colors, type Paleta } from '../constants/theme';
 import { useTema } from '../contexts/ThemeContext';
+
+type Usuario = {
+  nome: string;
+  email: string;
+  senha: string;
+};
 
 export default function PerfilScreen() {
   const { modoEscuro } = useTema();
@@ -19,9 +27,86 @@ export default function PerfilScreen() {
   const cores = modoEscuro ? Colors.dark : Colors.light;
   const styles = useMemo(() => criarEstilos(cores), [cores]);
 
-  const [nome, setNome] = useState('Seu nome');
-  const [email, setEmail] = useState('seuemail@email.com');
+  const [nome, setNome] = useState('');
+  const [nomeSalvo, setNomeSalvo] = useState('');
+  const [email, setEmail] = useState('');
   const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [sucesso, setSucesso] = useState('');
+
+  // Carrega o usuário logado toda vez que a tela abre
+  useFocusEffect(
+    useCallback(() => {
+      async function carregar() {
+        try {
+          const logado = await AsyncStorage.getItem('usuarioLogado');
+          const usuario = logado ? JSON.parse(logado) : null;
+
+          setNome(usuario?.nome ?? '');
+          setNomeSalvo(usuario?.nome ?? '');
+          setEmail(usuario?.email ?? '');
+          setEditando(false);
+          setErro('');
+          setSucesso('');
+        } catch (e) {
+          console.log('Erro ao carregar perfil:', e);
+        }
+      }
+
+      carregar();
+    }, [])
+  );
+
+  async function salvar() {
+    if (salvando) return;
+
+    setErro('');
+    setSucesso('');
+
+    const nomeLimpo = nome.trim();
+
+    if (!nomeLimpo) {
+      setErro('Digite seu nome.');
+      return;
+    }
+
+    try {
+      setSalvando(true);
+
+      // Atualiza a lista de usuários (usada no login)
+      const dados = await AsyncStorage.getItem('usuarios');
+      const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
+
+      const atualizados = usuarios.map((u) =>
+        u.email === email ? { ...u, nome: nomeLimpo } : u
+      );
+
+      await AsyncStorage.setItem('usuarios', JSON.stringify(atualizados));
+
+      // Atualiza o usuário logado
+      await AsyncStorage.setItem(
+        'usuarioLogado',
+        JSON.stringify({ nome: nomeLimpo, email })
+      );
+
+      setNome(nomeLimpo);
+      setNomeSalvo(nomeLimpo);
+      setEditando(false);
+      setSucesso('Perfil atualizado!');
+    } catch (e) {
+      console.log('Erro ao salvar perfil:', e);
+      setErro('Não foi possível salvar as alterações.');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function cancelar() {
+    setNome(nomeSalvo);
+    setEditando(false);
+    setErro('');
+  }
 
   return (
     <ScrollView
@@ -38,11 +123,11 @@ export default function PerfilScreen() {
       <View style={styles.cartao}>
         <View style={styles.avatar}>
           <Text style={styles.letra}>
-            {nome.trim().charAt(0).toUpperCase() || '?'}
+            {nomeSalvo.trim().charAt(0).toUpperCase() || '?'}
           </Text>
         </View>
 
-        <Text style={styles.nome}>{nome}</Text>
+        <Text style={styles.nome}>{nomeSalvo || 'Sem nome'}</Text>
         <Text style={styles.tipo}>Usuário do SENAC</Text>
 
         <View style={styles.divisor} />
@@ -53,40 +138,63 @@ export default function PerfilScreen() {
           value={nome}
           onChangeText={setNome}
           editable={editando}
+          maxLength={LIMITES.nome}
           placeholder="Digite seu nome"
           placeholderTextColor={cores.secundario}
+          autoCapitalize="words"
         />
 
         <Text style={styles.label}>E-mail</Text>
         <TextInput
-          style={[styles.input, editando && styles.inputEditando]}
+          style={[styles.input, styles.inputBloqueado]}
           value={email}
-          onChangeText={setEmail}
-          editable={editando}
-          placeholder="Digite seu e-mail"
-          placeholderTextColor={cores.secundario}
-          keyboardType="email-address"
-          autoCapitalize="none"
+          editable={false}
+          maxLength={LIMITES.email}
         />
+        <Text style={styles.dica}>O e-mail não pode ser alterado.</Text>
+
+        {erro !== '' && (
+          <View style={styles.caixaErro}>
+            <Text style={styles.erro}>{erro}</Text>
+          </View>
+        )}
+
+        {sucesso !== '' && (
+          <View style={styles.caixaSucesso}>
+            <Text style={styles.sucesso}>{sucesso}</Text>
+          </View>
+        )}
 
         <Pressable
           style={({ pressed }) => [
             styles.botao,
             pressed && styles.botaoPressionado,
+            salvando && styles.botaoDesativado,
           ]}
+          disabled={salvando}
           onPress={() => {
             if (editando) {
-              setEditando(false);
-              Alert.alert('Perfil', 'Alterações aplicadas nesta tela.');
+              salvar();
             } else {
+              setSucesso('');
               setEditando(true);
             }
           }}
         >
           <Text style={styles.textoBotao}>
-            {editando ? 'Salvar alterações' : 'Editar perfil'}
+            {salvando
+              ? 'Salvando...'
+              : editando
+                ? 'Salvar alterações'
+                : 'Editar perfil'}
           </Text>
         </Pressable>
+
+        {editando && (
+          <Pressable style={styles.botaoCancelar} onPress={cancelar}>
+            <Text style={styles.textoCancelar}>Cancelar</Text>
+          </Pressable>
+        )}
       </View>
     </ScrollView>
   );
@@ -194,6 +302,45 @@ const criarEstilos = (c: Paleta) =>
       backgroundColor: c.superficie,
     },
 
+    inputBloqueado: {
+      marginBottom: 6,
+      color: c.secundario,
+    },
+
+    dica: {
+      fontSize: 12,
+      color: c.secundario,
+      marginBottom: 18,
+    },
+
+    caixaErro: {
+      backgroundColor: '#FDECEC',
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 14,
+    },
+
+    erro: {
+      color: '#D32F2F',
+      fontSize: 13,
+      lineHeight: 18,
+    },
+
+    caixaSucesso: {
+      backgroundColor: '#E8F6EE',
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 14,
+    },
+
+    sucesso: {
+      color: '#1B8A4B',
+      fontSize: 13,
+      lineHeight: 18,
+    },
+
     botao: {
       height: 52,
       backgroundColor: c.primario,
@@ -213,9 +360,26 @@ const criarEstilos = (c: Paleta) =>
       transform: [{ scale: 0.985 }],
     },
 
+    botaoDesativado: {
+      opacity: 0.6,
+    },
+
     textoBotao: {
       color: '#FFFFFF',
       fontSize: 15,
       fontWeight: '700',
+    },
+
+    botaoCancelar: {
+      height: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 8,
+    },
+
+    textoCancelar: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: c.secundario,
     },
   });

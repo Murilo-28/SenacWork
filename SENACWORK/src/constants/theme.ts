@@ -24,6 +24,8 @@ export const Colors = {
     primario: '#00549A',
     primarioSuave: '#E6F0FA',
     acento: '#F7941D',
+    destaque: '#F7941D', // faixa laranja do Senac (modo claro)
+    acao: '#F7941D', // botão de ação principal (+)
   },
   dark: {
     text: '#ffffff',
@@ -41,6 +43,8 @@ export const Colors = {
     primario: '#4A9BE8',
     primarioSuave: '#16263D',
     acento: '#F7941D',
+    destaque: '#1F2A3D', // no escuro a faixa fica neutra
+    acao: '#4A9BE8',
   },
 } as const;
 

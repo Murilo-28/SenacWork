@@ -14,6 +14,18 @@ export const Colors = {
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
+
+    // Cores do Achados e Perdidos SENAC
+    fundo: '#F4F7FB',
+    superficie: '#FFFFFF',
+    texto: '#0F1B2D',
+    secundario: '#6B7A90',
+    borda: '#E3E9F1',
+    primario: '#00549A',
+    primarioSuave: '#E6F0FA',
+    acento: '#F7941D',
+    destaque: '#F7941D', // faixa laranja do Senac (modo claro)
+    acao: '#F7941D', // botão de ação principal (+)
   },
   dark: {
     text: '#ffffff',
@@ -21,10 +33,25 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+
+    // Cores do Achados e Perdidos SENAC
+    fundo: '#0B1220',
+    superficie: '#111A2B',
+    texto: '#F1F5F9',
+    secundario: '#94A3B8',
+    borda: '#1F2A3D',
+    primario: '#4A9BE8',
+    primarioSuave: '#16263D',
+    acento: '#F7941D',
+    destaque: '#1F2A3D', // no escuro a faixa fica neutra
+    acao: '#4A9BE8',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+// Formato das cores usado pelas telas (claro e escuro têm as mesmas chaves)
+export type Paleta = { [K in keyof typeof Colors.light]: string };
 
 export const Fonts = Platform.select({
   ios: {

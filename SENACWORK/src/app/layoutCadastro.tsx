@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type HeaderProps = {
   showMenu?: boolean;
@@ -15,24 +16,35 @@ export default function Header({
   onMenuPress,
   onProfilePress,
 }: HeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         <View style={styles.left}>
           {showMenu && (
-            <TouchableOpacity onPress={onMenuPress} style={styles.menuButton}>
-              <Ionicons name="menu" size={34} color="#FFFFFF" />
-            </TouchableOpacity>
+            <Pressable
+              onPress={onMenuPress}
+              style={styles.botaoIcone}
+              hitSlop={8}
+            >
+              <Ionicons name="menu" size={26} color="#0F1B2D" />
+            </Pressable>
           )}
 
-          <Text style={styles.logoAP}>A&P </Text>
-          <Text style={styles.logoSenac}>SENAC</Text>
+          <Text style={styles.logo}>
+            A&P <Text style={styles.senac}>SENAC</Text>
+          </Text>
         </View>
 
         {showProfile && (
-          <TouchableOpacity onPress={onProfilePress} style={styles.avatar}>
-            <Ionicons name="person-outline" size={32} color="#1A1A1A" />
-          </TouchableOpacity>
+          <Pressable
+            onPress={onProfilePress}
+            style={[styles.botaoIcone, styles.avatar]}
+            hitSlop={8}
+          >
+            <Ionicons name="person-outline" size={20} color="#00549A" />
+          </Pressable>
         )}
       </View>
     </View>
@@ -41,45 +53,43 @@ export default function Header({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F7941D',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
+    backgroundColor: '#F4F7FB',
   },
+
   content: {
-    height: 70,
-    paddingHorizontal: 16,
+    height: 56,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   left: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  menuButton: {
-    marginRight: 12,
-  },
-  logoAP: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textShadowColor: '#1A1A1A',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  logoSenac: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0B3C7A',
-    textShadowColor: '#FFFFFF',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#E0E0E0',
+
+  botaoIcone: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  logo: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    color: '#0F1B2D',
+  },
+
+  senac: {
+    color: '#00549A',
+  },
+
+  avatar: {
+    borderRadius: 20,
+    backgroundColor: '#E6F0FA',
   },
 });

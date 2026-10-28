@@ -1,281 +1,161 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { Colors, type Paleta } from '../constants/theme';
 import { useTema } from '../contexts/ThemeContext';
 
+const opcoes = [
+  {
+    valor: 'claro',
+    nome: 'Claro',
+    descricao: 'Fundo claro, ideal para o dia',
+    icone: 'sunny-outline',
+  },
+  {
+    valor: 'escuro',
+    nome: 'Escuro',
+    descricao: 'Fundo escuro, mais confortável à noite',
+    icone: 'moon-outline',
+  },
+] as const;
 
 export default function Config() {
+  const { tema, modoEscuro, mudarTema } = useTema();
 
-  const {
-    tema,
-    modoEscuro,
-    mudarTema,
-  } = useTema();
-
+  const cores = modoEscuro ? Colors.dark : Colors.light;
+  const styles = useMemo(() => criarEstilos(cores), [cores]);
 
   return (
+    <View style={styles.container}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.titulo}>Configurações</Text>
+        <Text style={styles.subtitulo}>Personalize o app</Text>
+      </View>
 
-    <View
-      style={[
-        styles.container,
+      <Text style={styles.secao}>APARÊNCIA</Text>
 
-        {
-          backgroundColor:
-            modoEscuro
-              ? '#061A36'
-              : '#FFFFFF',
-        },
-      ]}
-    >
+      <View style={styles.cartao}>
+        {opcoes.map((opcao, indice) => {
+          const ativo = tema === opcao.valor;
 
+          return (
+            <Pressable
+              key={opcao.valor}
+              style={[
+                styles.opcao,
+                indice > 0 && styles.opcaoComBorda,
+              ]}
+              onPress={() => mudarTema(opcao.valor)}
+            >
+              <View style={[styles.icone, ativo && styles.iconeAtivo]}>
+                <Ionicons
+                  name={opcao.icone}
+                  size={20}
+                  color={ativo ? '#FFFFFF' : cores.secundario}
+                />
+              </View>
 
-      {/* TÍTULO */}
+              <View style={styles.textos}>
+                <Text style={styles.nomeOpcao}>{opcao.nome}</Text>
+                <Text style={styles.descricao}>{opcao.descricao}</Text>
+              </View>
 
-      <Text
-        style={[
-          styles.titulo,
-
-          {
-            color:
-              modoEscuro
-                ? '#FFFFFF'
-                : '#000000',
-          },
-        ]}
-      >
-        Configurações
-      </Text>
-
-
-
-      {/* MODO */}
-
-      <Text
-        style={[
-          styles.modo,
-
-          {
-            color:
-              modoEscuro
-                ? '#FFFFFF'
-                : '#000000',
-          },
-        ]}
-      >
-        Modo:
-      </Text>
-
-
-
-      {/* ================= CLARO ================= */}
-
-      <Pressable
-        style={styles.opcao}
-        onPress={() => mudarTema('claro')}
-      >
-
-        <Text
-          style={[
-            styles.bolinha,
-
-            {
-              color:
-                modoEscuro
-                  ? '#FFFFFF'
-                  : '#000000',
-            },
-          ]}
-        >
-
-          {tema === 'claro'
-            ? '◉'
-            : '○'}
-
-        </Text>
-
-
-        <View>
-
-          <Text
-            style={[
-              styles.nomeOpcao,
-
-              {
-                color:
-                  modoEscuro
-                    ? '#FFFFFF'
-                    : '#333333',
-              },
-            ]}
-          >
-            Claro
-          </Text>
-
-
-          <Text
-            style={[
-              styles.descricao,
-
-              {
-                color:
-                  modoEscuro
-                    ? '#B8C7D9'
-                    : '#777777',
-              },
-            ]}
-          >
-            Um modo claro
-          </Text>
-
-        </View>
-
-      </Pressable>
-
-
-
-      {/* ================= ESCURO ================= */}
-
-      <Pressable
-        style={styles.opcao}
-        onPress={() => mudarTema('escuro')}
-      >
-
-        <Text
-          style={[
-            styles.bolinha,
-
-            {
-              color:
-                modoEscuro
-                  ? '#FFFFFF'
-                  : '#000000',
-            },
-          ]}
-        >
-
-          {tema === 'escuro'
-            ? '◉'
-            : '○'}
-
-        </Text>
-
-
-        <View>
-
-          <Text
-            style={[
-              styles.nomeOpcao,
-
-              {
-                color:
-                  modoEscuro
-                    ? '#FFFFFF'
-                    : '#333333',
-              },
-            ]}
-          >
-            Escuro
-          </Text>
-
-
-          <Text
-            style={[
-              styles.descricao,
-
-              {
-                color:
-                  modoEscuro
-                    ? '#B8C7D9'
-                    : '#777777',
-              },
-            ]}
-          >
-            Um modo escuro
-          </Text>
-
-        </View>
-
-      </Pressable>
-
+              <Ionicons
+                name={ativo ? 'radio-button-on' : 'radio-button-off'}
+                size={22}
+                color={ativo ? cores.primario : cores.borda}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
-
   );
 }
 
+const criarEstilos = (c: Paleta) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.fundo,
+      paddingHorizontal: 24,
+      paddingTop: 28,
+    },
 
+    cabecalho: {
+      marginBottom: 28,
+    },
 
-const styles = StyleSheet.create({
+    titulo: {
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+      color: c.texto,
+    },
 
-  container: {
+    subtitulo: {
+      fontSize: 14,
+      color: c.secundario,
+      marginTop: 6,
+    },
 
-    flex: 1,
+    secao: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 2,
+      color: c.secundario,
+      marginBottom: 10,
+      marginLeft: 4,
+    },
 
-    padding: 20,
+    cartao: {
+      backgroundColor: c.superficie,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.borda,
+      overflow: 'hidden',
+    },
 
-  },
+    opcao: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      padding: 16,
+    },
 
+    opcaoComBorda: {
+      borderTopWidth: 1,
+      borderTopColor: c.borda,
+    },
 
-  titulo: {
+    icone: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: c.primarioSuave,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-    fontSize: 30,
+    iconeAtivo: {
+      backgroundColor: c.primario,
+    },
 
-    fontWeight: '400',
+    textos: {
+      flex: 1,
+    },
 
-    marginBottom: 30,
+    nomeOpcao: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: c.texto,
+    },
 
-  },
-
-
-  modo: {
-
-    fontSize: 20,
-
-    marginBottom: 15,
-
-  },
-
-
-  opcao: {
-
-    flexDirection: 'row',
-
-    alignItems: 'flex-start',
-
-    marginLeft: 15,
-
-    marginBottom: 20,
-
-  },
-
-
-  bolinha: {
-
-    fontSize: 22,
-
-    marginRight: 10,
-
-    marginTop: -2,
-
-  },
-
-
-  nomeOpcao: {
-
-    fontSize: 16,
-
-  },
-
-
-  descricao: {
-
-    fontSize: 14,
-
-    marginTop: 3,
-
-  },
-
-});
+    descricao: {
+      fontSize: 13,
+      color: c.secundario,
+      marginTop: 2,
+    },
+  });

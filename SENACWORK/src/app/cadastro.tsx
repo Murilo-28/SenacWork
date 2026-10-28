@@ -2,26 +2,23 @@ import { useState } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
 } from 'react-native';
 
 import Header from '../components/Header';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-type Usuario = {
-  nome: string;
-  email: string;
-  senha: string;
-};
+import { auth, db } from '../services/firebase';
 
 type Campo = 'nome' | 'email' | 'senha' | 'confirmar';
 
@@ -47,14 +44,18 @@ export default function CadastroScreen() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [mensagem, setMensagem] = useState('');
+  const [carregando, setCarregando] = useState(false);
   const [focado, setFocado] = useState<Campo | null>(null);
 
   async function cadastrar() {
+    if (carregando) return;
+
     setMensagem('');
 
+    const nomeLimpo = nome.trim();
     const emailLimpo = email.trim().toLowerCase();
 
-    if (!nome.trim() || !emailLimpo || !senha || !confirmarSenha) {
+    if (!nomeLimpo || !emailLimpo || !senha || !confirmarSenha) {
       setMensagem('Preencha todos os campos.');
       return;
     }
@@ -74,39 +75,60 @@ export default function CadastroScreen() {
       return;
     }
 
-    try {
-      const dados = await AsyncStorage.getItem('usuarios');
-      const usuarios: Usuario[] = dados ? JSON.parse(dados) : [];
+    setCarregando(true);
 
-      const emailExiste = usuarios.some(
-        (usuario) => usuario.email === emailLimpo
+    try {
+      const credencial = await createUserWithEmailAndPassword(
+        auth,
+        emailLimpo,
+        senha
       );
 
-      if (emailExiste) {
-        setMensagem('E-mail já cadastrado. Utilize outro e-mail ou faça login.');
-        return;
-      }
+      const usuario = credencial.user;
 
-      usuarios.push({
-        nome: nome.trim(),
-        email: emailLimpo,
-        senha: senha,
+      await updateProfile(usuario, {
+        displayName: nomeLimpo,
       });
 
-      await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+      await setDoc(doc(db, 'usuarios', usuario.uid), {
+        uid: usuario.uid,
+        nome: nomeLimpo,
+        email: emailLimpo,
+        criadoEm: serverTimestamp(),
+      });
 
       router.replace('/');
-    } catch (erro) {
+    } catch (erro: any) {
       console.error('Erro ao cadastrar:', erro);
-      setMensagem('Não foi possível salvar o cadastro.');
+
+      switch (erro.code) {
+        case 'auth/email-already-in-use':
+          setMensagem('Este e-mail já está cadastrado. Faça login.');
+          break;
+
+        case 'auth/invalid-email':
+          setMensagem('O e-mail informado é inválido.');
+          break;
+
+        case 'auth/weak-password':
+          setMensagem('Escolha uma senha mais forte.');
+          break;
+
+        case 'auth/network-request-failed':
+          setMensagem('Sem conexão. Verifique sua internet e tente novamente.');
+          break;
+
+        default:
+          setMensagem('Não foi possível concluir o cadastro. Tente novamente.');
+          break;
+      }
+    } finally {
+      setCarregando(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior="padding"
-    >
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <Header showMenu={false} showProfile={false} />
 
       <ScrollView
@@ -138,6 +160,7 @@ export default function CadastroScreen() {
               onFocus={() => setFocado('nome')}
               onBlur={() => setFocado(null)}
               autoCapitalize="words"
+              editable={!carregando}
               returnKeyType="next"
             />
 
@@ -153,6 +176,7 @@ export default function CadastroScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!carregando}
               returnKeyType="next"
             />
 
@@ -173,6 +197,7 @@ export default function CadastroScreen() {
                 secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!carregando}
                 returnKeyType="next"
               />
 
@@ -209,6 +234,7 @@ export default function CadastroScreen() {
                 secureTextEntry={!mostrarConfirmar}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!carregando}
                 returnKeyType="done"
                 onSubmitEditing={cadastrar}
               />
@@ -239,16 +265,26 @@ export default function CadastroScreen() {
               style={({ pressed }) => [
                 styles.botao,
                 pressed && styles.botaoPressionado,
+                carregando && styles.botaoDesativado,
               ]}
               onPress={cadastrar}
+              disabled={carregando}
             >
-              <Text style={styles.textoBotao}>Cadastrar</Text>
+              {carregando ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.textoBotao}>Cadastrar</Text>
+              )}
             </Pressable>
           </View>
 
           <View style={styles.rodape}>
             <Text style={styles.textoLogin}>Já possui uma conta?</Text>
-            <Pressable onPress={() => router.replace('/')} hitSlop={8}>
+            <Pressable
+              onPress={() => router.replace('/')}
+              disabled={carregando}
+              hitSlop={8}
+            >
               <Text style={styles.link}>Fazer login</Text>
             </Pressable>
           </View>
@@ -405,6 +441,10 @@ const styles = StyleSheet.create({
   botaoPressionado: {
     opacity: 0.88,
     transform: [{ scale: 0.985 }],
+  },
+
+  botaoDesativado: {
+    opacity: 0.6,
   },
 
   textoBotao: {
